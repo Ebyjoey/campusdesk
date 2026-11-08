@@ -1,0 +1,30 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["127.0.0.1:9090"]
+
+  - job_name: node
+    static_configs:
+{% for h in groups['all'] %}
+      - targets: ["{{ hostvars[h].private_ip }}:9100"]
+        labels:
+          host: {{ h }}
+{% endfor %}
+
+  # The app is reached through the NodePort on each node; the Service
+  # balances across both pods, so both targets show the same app.
+  - job_name: campusdesk
+    metrics_path: /metrics
+    static_configs:
+{% for h in groups['k3s_server'] + groups['k3s_agent'] %}
+      - targets: ["{{ hostvars[h].private_ip }}:30080"]
+        labels:
+          via_node: {{ h }}
+{% endfor %}

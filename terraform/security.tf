@@ -41,15 +41,6 @@ resource "aws_vpc_security_group_ingress_rule" "jenkins_ui" {
   description       = "Jenkins UI from my IP"
 }
 
-resource "aws_vpc_security_group_ingress_rule" "jenkins_node_exporter" {
-  security_group_id            = aws_security_group.jenkins.id
-  referenced_security_group_id = aws_security_group.k8s.id
-  ip_protocol                  = "tcp"
-  from_port                    = 9100
-  to_port                      = 9100
-  description                  = "Prometheus scrapes node_exporter"
-}
-
 # ---------- Kubernetes nodes ----------
 resource "aws_vpc_security_group_ingress_rule" "k8s_ssh" {
   security_group_id = aws_security_group.k8s.id
@@ -91,7 +82,16 @@ resource "aws_vpc_security_group_ingress_rule" "k8s_self" {
   security_group_id            = aws_security_group.k8s.id
   referenced_security_group_id = aws_security_group.k8s.id
   ip_protocol                  = "-1"
-  description                  = "Node to node: kubelet, pod network, node_exporter"
+  description                  = "Node to node: kubelet and pod network"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "k8s_node_exporter_from_jenkins" {
+  security_group_id            = aws_security_group.k8s.id
+  referenced_security_group_id = aws_security_group.jenkins.id
+  ip_protocol                  = "tcp"
+  from_port                    = 9100
+  to_port                      = 9100
+  description                  = "Prometheus (on Jenkins host) scrapes node_exporter"
 }
 
 # ---------- Database ----------
@@ -115,7 +115,7 @@ resource "aws_vpc_security_group_ingress_rule" "db_ssh_from_jenkins" {
 
 resource "aws_vpc_security_group_ingress_rule" "db_node_exporter" {
   security_group_id            = aws_security_group.db.id
-  referenced_security_group_id = aws_security_group.k8s.id
+  referenced_security_group_id = aws_security_group.jenkins.id
   ip_protocol                  = "tcp"
   from_port                    = 9100
   to_port                      = 9100

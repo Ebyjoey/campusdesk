@@ -1,0 +1,8 @@
+---
+- name: restart prometheus
+  ansible.builtin.command: docker restart prometheus
+  failed_when: false
+
+- name: restart grafana
+  ansible.builtin.command: docker restart grafana
+  failed_when: false

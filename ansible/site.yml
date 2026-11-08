@@ -1,5 +1,6 @@
 ---
 # Run everything:        ansible-playbook site.yml -e db_password=...
+# Monitoring only:       ansible-playbook site.yml --tags monitoring -e grafana_password=...
 # Run one part:          ansible-playbook site.yml --tags db -e db_password=...
 - name: Base setup on every server
   hosts: all
@@ -30,3 +31,9 @@
   become: true
   roles: [jenkins]
   tags: [jenkins]
+
+- name: Prometheus and Grafana on the Jenkins host
+  hosts: jenkins
+  become: true
+  roles: [monitoring]
+  tags: [monitoring]

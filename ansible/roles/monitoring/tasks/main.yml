@@ -1,0 +1,99 @@
+---
+- name: Require a Grafana admin password
+  ansible.builtin.assert:
+    that: grafana_password is defined and grafana_password | length >= 8
+    fail_msg: "Pass -e grafana_password=... (at least 8 characters)"
+
+- name: Create config and data directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner | default('root') }}"
+    mode: "0755"
+  loop:
+    - { path: /opt/monitoring }
+    - { path: /opt/monitoring/prometheus }
+    - { path: /opt/monitoring/prometheus/data, owner: "65534" }
+    - { path: /opt/monitoring/grafana }
+    - { path: /opt/monitoring/grafana/data, owner: "472" }
+    - { path: /opt/monitoring/grafana/provisioning }
+    - { path: /opt/monitoring/grafana/provisioning/datasources }
+    - { path: /opt/monitoring/grafana/provisioning/dashboards }
+    - { path: /opt/monitoring/grafana/dashboards }
+
+- name: Prometheus config
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: /opt/monitoring/prometheus/prometheus.yml
+    mode: "0644"
+  notify: restart prometheus
+
+- name: Prometheus alert rules
+  ansible.builtin.copy:
+    src: alerts.yml
+    dest: /opt/monitoring/prometheus/alerts.yml
+    mode: "0644"
+  notify: restart prometheus
+
+- name: Grafana datasource
+  ansible.builtin.copy:
+    src: datasource.yml
+    dest: /opt/monitoring/grafana/provisioning/datasources/datasource.yml
+    mode: "0644"
+  notify: restart grafana
+
+- name: Grafana dashboard provider
+  ansible.builtin.copy:
+    src: dashboards.yml
+    dest: /opt/monitoring/grafana/provisioning/dashboards/dashboards.yml
+    mode: "0644"
+  notify: restart grafana
+
+- name: Grafana dashboard
+  ansible.builtin.copy:
+    src: campusdesk-dashboard.json
+    dest: /opt/monitoring/grafana/dashboards/campusdesk.json
+    mode: "0644"
+
+- name: Check whether Prometheus container is running
+  ansible.builtin.command: docker inspect -f '{{ '{{' }}.State.Running{{ '}}' }}' prometheus
+  register: prom_state
+  changed_when: false
+  failed_when: false
+
+- name: Start Prometheus (host network, localhost only)
+  ansible.builtin.shell: |
+    docker rm -f prometheus 2>/dev/null || true
+    docker run -d --name prometheus --restart unless-stopped --network host \
+      --memory 300m \
+      -v /opt/monitoring/prometheus:/etc/prometheus:ro \
+      -v /opt/monitoring/prometheus/data:/prometheus \
+      prom/prometheus:v2.55.1 \
+      --config.file=/etc/prometheus/prometheus.yml \
+      --storage.tsdb.path=/prometheus \
+      --storage.tsdb.retention.time=7d \
+      --web.listen-address=127.0.0.1:9090
+  when: prom_state.stdout != 'true'
+
+- name: Check whether Grafana container is running
+  ansible.builtin.command: docker inspect -f '{{ '{{' }}.State.Running{{ '}}' }}' grafana
+  register: graf_state
+  changed_when: false
+  failed_when: false
+
+- name: Start Grafana (host network, localhost only)
+  ansible.builtin.shell: |
+    docker rm -f grafana 2>/dev/null || true
+    docker run -d --name grafana --restart unless-stopped --network host \
+      --memory 350m \
+      -e GF_SERVER_HTTP_ADDR=127.0.0.1 \
+      -e GF_SERVER_HTTP_PORT=3000 \
+      -e GF_SECURITY_ADMIN_USER=admin \
+      -e GF_SECURITY_ADMIN_PASSWORD='{{ grafana_password }}' \
+      -e GF_USERS_ALLOW_SIGN_UP=false \
+      -v /opt/monitoring/grafana/data:/var/lib/grafana \
+      -v /opt/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro \
+      -v /opt/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro \
+      grafana/grafana:11.3.1
+  when: graf_state.stdout != 'true'
+  no_log: true
