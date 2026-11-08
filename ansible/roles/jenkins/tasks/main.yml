@@ -1,7 +1,7 @@
 ---
 - name: Install Java 21 (current Jenkins needs 21 or 25) and Docker
   ansible.builtin.apt:
-    name: [fontconfig, openjdk-21-jre, docker.io]
+    name: [fontconfig, openjdk-21-jre, docker.io, git]
     state: present
     update_cache: true
     lock_timeout: 300
@@ -36,6 +36,32 @@
     state: present
     update_cache: true
     lock_timeout: 300
+
+- name: Check whether kubectl is already installed
+  ansible.builtin.stat:
+    path: /usr/local/bin/kubectl
+  register: kubectl_bin
+
+- name: Look up the current stable kubectl version
+  ansible.builtin.uri:
+    url: https://dl.k8s.io/release/stable.txt
+    return_content: true
+  register: kube_stable
+  retries: 5
+  delay: 10
+  until: kube_stable is succeeded
+  when: not kubectl_bin.stat.exists
+
+- name: Install kubectl (the pipeline deploys with it)
+  ansible.builtin.get_url:
+    url: "https://dl.k8s.io/release/{{ kube_stable.content | trim }}/bin/linux/amd64/kubectl"
+    dest: /usr/local/bin/kubectl
+    mode: "0755"
+  register: kubectl_dl
+  retries: 5
+  delay: 10
+  until: kubectl_dl is succeeded
+  when: not kubectl_bin.stat.exists
 
 - name: Let Jenkins run Docker builds
   ansible.builtin.user:
