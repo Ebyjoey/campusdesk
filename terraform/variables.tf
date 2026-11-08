@@ -56,7 +56,7 @@ variable "master_instance_type" {
 variable "worker_instance_type" {
   description = "t3.medium is not on the new AWS Free plan. If AWS refuses it, use t3.small."
   type        = string
-  default     = "t3.medium"
+  default     = "t3.small"
 }
 
 variable "db_instance_type" {

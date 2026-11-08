@@ -1,0 +1,32 @@
+---
+# Run everything:        ansible-playbook site.yml -e db_password=...
+# Run one part:          ansible-playbook site.yml --tags db -e db_password=...
+- name: Base setup on every server
+  hosts: all
+  become: true
+  roles: [common]
+  tags: [common]
+
+- name: PostgreSQL on the private database host
+  hosts: db
+  become: true
+  roles: [postgres]
+  tags: [db]
+
+- name: k3s server (Kubernetes control plane)
+  hosts: k3s_server
+  become: true
+  roles: [k3s_server]
+  tags: [k3s]
+
+- name: k3s agent (worker)
+  hosts: k3s_agent
+  become: true
+  roles: [k3s_agent]
+  tags: [k3s]
+
+- name: Jenkins and Docker
+  hosts: jenkins
+  become: true
+  roles: [jenkins]
+  tags: [jenkins]

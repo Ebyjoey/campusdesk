@@ -1,0 +1,57 @@
+---
+- name: Install Java 21 (current Jenkins needs 21 or 25) and Docker
+  ansible.builtin.apt:
+    name: [fontconfig, openjdk-21-jre, docker.io]
+    state: present
+    update_cache: true
+    lock_timeout: 300
+
+- name: Remove Java 17 so Jenkins cannot pick it
+  ansible.builtin.apt:
+    name: [openjdk-17-jre, openjdk-17-jre-headless]
+    state: absent
+    autoremove: true
+    lock_timeout: 300
+
+- name: Add the Jenkins package signing key
+  ansible.builtin.get_url:
+    url: https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key
+    dest: /usr/share/keyrings/jenkins-keyring.asc
+    mode: "0644"
+    force: true
+  register: key
+  retries: 5
+  delay: 10
+  until: key is succeeded
+
+- name: Add the Jenkins package repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/"
+    filename: jenkins
+    state: present
+
+- name: Install Jenkins
+  ansible.builtin.apt:
+    name: jenkins
+    state: present
+    update_cache: true
+    lock_timeout: 300
+
+- name: Let Jenkins run Docker builds
+  ansible.builtin.user:
+    name: jenkins
+    groups: docker
+    append: true
+  notify: restart jenkins
+
+- name: Clear systemd's "restarted too quickly" lockout from earlier failures
+  ansible.builtin.command: systemctl reset-failed jenkins
+  changed_when: false
+  failed_when: false
+
+- name: Start Jenkins and Docker on boot
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop: [docker, jenkins]

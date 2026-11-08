@@ -1,0 +1,27 @@
+---
+- name: Read the join token from the server
+  ansible.builtin.slurp:
+    src: /var/lib/rancher/k3s/server/node-token
+  delegate_to: "{{ groups['k3s_server'][0] }}"
+  register: token_file
+  no_log: true
+
+- name: Download the k3s installer
+  ansible.builtin.get_url:
+    url: https://get.k3s.io
+    dest: /usr/local/bin/k3s-install.sh
+    mode: "0755"
+  register: dl
+  retries: 5
+  delay: 10
+  until: dl is succeeded
+
+- name: Join the cluster as an agent
+  ansible.builtin.command: /usr/local/bin/k3s-install.sh
+  args:
+    creates: /etc/systemd/system/k3s-agent.service
+  environment:
+    INSTALL_K3S_EXEC: "agent --node-ip {{ private_ip }}"
+    K3S_URL: "https://{{ hostvars[groups['k3s_server'][0]].private_ip }}:6443"
+    K3S_TOKEN: "{{ token_file.content | b64decode | trim }}"
+  no_log: true

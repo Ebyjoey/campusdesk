@@ -1,0 +1,52 @@
+---
+- name: Require a database password
+  ansible.builtin.assert:
+    that: db_password is defined and db_password | length >= 12
+    fail_msg: "Pass -e db_password=... (at least 12 characters)"
+
+- name: Install PostgreSQL
+  ansible.builtin.apt:
+    name: postgresql
+    state: present
+    update_cache: true
+    lock_timeout: 300
+
+- name: Find the installed PostgreSQL version directory
+  ansible.builtin.find:
+    paths: /etc/postgresql
+    file_type: directory
+    recurse: false
+  register: pg_dirs
+
+- name: Remember the config path
+  ansible.builtin.set_fact:
+    pg_conf: "{{ (pg_dirs.files | first).path }}/main"
+
+- name: Listen on the private address
+  ansible.builtin.copy:
+    dest: "{{ pg_conf }}/conf.d/10-campusdesk.conf"
+    content: "listen_addresses = 'localhost,{{ private_ip }}'\n"
+    mode: "0644"
+  notify: restart postgresql
+
+- name: Allow the campusdesk user from the VPC only
+  ansible.builtin.lineinfile:
+    path: "{{ pg_conf }}/pg_hba.conf"
+    line: "host campusdesk campusdesk 10.20.0.0/16 scram-sha-256"
+  notify: restart postgresql
+
+- name: Apply config before creating users
+  ansible.builtin.meta: flush_handlers
+
+- name: Create the application role
+  ansible.builtin.shell: |
+    sudo -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='campusdesk'" | grep -q 1 ||
+    sudo -u postgres psql -c "CREATE ROLE campusdesk LOGIN PASSWORD '{{ db_password }}'"
+  no_log: true
+  changed_when: false
+
+- name: Create the application database
+  ansible.builtin.shell: |
+    sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='campusdesk'" | grep -q 1 ||
+    sudo -u postgres psql -c "CREATE DATABASE campusdesk OWNER campusdesk"
+  changed_when: false

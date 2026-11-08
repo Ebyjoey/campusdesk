@@ -1,0 +1,25 @@
+---
+- name: Install base packages and node_exporter
+  ansible.builtin.apt:
+    name: [ca-certificates, curl, acl, prometheus-node-exporter]
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+    lock_timeout: 300
+
+- name: Enable node_exporter (Prometheus scrapes port 9100)
+  ansible.builtin.systemd:
+    name: prometheus-node-exporter
+    enabled: true
+    state: started
+
+- name: Create a 1 GB swap file (small instances run out of memory without it)
+  ansible.builtin.shell: |
+    fallocate -l 1G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+  args:
+    creates: /swapfile
+
+- name: Keep swap across reboots
+  ansible.builtin.lineinfile:
+    path: /etc/fstab
+    line: "/swapfile none swap sw 0 0"
