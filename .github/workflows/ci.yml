@@ -86,7 +86,10 @@ jobs:
 
       - name: Validate Kubernetes manifests
         run: |
-          curl -sSL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | tar xz
+          curl -fsSL --retry 5 --retry-delay 5 --retry-all-errors \
+            -o kubeconform.tar.gz \
+            https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz
+          tar xzf kubeconform.tar.gz kubeconform
           ./kubeconform -strict -summary -ignore-missing-schemas k8s/
 
   docker:
