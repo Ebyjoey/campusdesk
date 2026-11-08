@@ -123,11 +123,11 @@ resource "aws_cloudwatch_dashboard" "main" {
       {
         type = "metric", x = 0, y = 6, width = 12, height = 6
         properties = {
-          title  = "Application ERROR lines"
-          region = var.region
-          view   = "timeSeries"
-          stat   = "Sum"
-          period = 300
+          title   = "Application ERROR lines"
+          region  = var.region
+          view    = "timeSeries"
+          stat    = "Sum"
+          period  = 300
           metrics = [["CampusDesk", "AppErrorCount"]]
         }
       },
