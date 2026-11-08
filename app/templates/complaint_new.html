@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Raise a complaint - CampusDesk{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Raise a complaint</h1>
+    <p>Say what is wrong and where. You will get a ticket number straight away.</p>
+  </div>
+</div>
+<div class="grid-2">
+  <form class="card" method="post" novalidate data-loading>
+    {{ form.hidden_tag() }}
+    <div class="field">
+      {{ form.title.label }}
+      {{ form.title(class="input", placeholder="Short summary, for example: Fan not working in room 204", autofocus=true, maxlength=120) }}
+      {% for e in form.title.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
+    </div>
+    <div class="form-row">
+      <div class="field">{{ form.category_id.label }}{{ form.category_id(class="input") }}</div>
+      <div class="field">
+        {{ form.location.label }}
+        {{ form.location(class="input", placeholder="Building and room", maxlength=120) }}
+        {% for e in form.location.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
+      </div>
+    </div>
+    <div class="field">
+      <span class="legend" id="prio-l">Priority</span>
+      <div class="seg" role="radiogroup" aria-labelledby="prio-l">
+        {% for value, label in form.priority.choices %}
+          <input type="radio" name="priority" id="prio-{{ value }}" value="{{ value }}" {{ 'checked' if (form.priority.data or 'Medium') == value }}>
+          <label for="prio-{{ value }}">{{ label }}</label>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="field">
+      {{ form.description.label }}
+      {{ form.description(class="input", rows=6, maxlength=2000, placeholder="What happened, since when, and anything staff should know.", **{"data-counter": "descCount"}) }}
+      <div class="hint"><span>At least 10 characters.</span><span id="descCount"></span></div>
+      {% for e in form.description.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
+    </div>
+    <button class="btn" type="submit">Submit complaint</button>
+  </form>
+
+  <aside class="card">
+    <h2>What happens next</h2>
+    <ol class="timeline">
+      <li>Your complaint gets a ticket number.<span class="when">It appears in your list straight away.</span></li>
+      <li>An admin assigns it to the right staff member.<span class="when">You will see their name on the ticket.</span></li>
+      <li>Staff work on it and mark it fixed.<span class="when">Comments keep everyone in the loop.</span></li>
+      <li>You confirm the fix, or reopen it.<span class="when">Nothing closes without you.</span></li>
+    </ol>
+  </aside>
+</div>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "public.html" %}
+{% block title %}Sign in - CampusDesk{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div>
+    <h1>Welcome back.</h1>
+    <p class="lede">Pick up where your complaints left off.</p>
+  </div>
+  <div class="card auth-card">
+    <h2>Sign in</h2>
+    <form method="post" novalidate data-loading>
+      {{ form.hidden_tag() }}
+      <div class="field">
+        {{ form.email.label }}
+        {{ form.email(class="input", autocomplete="username", autofocus=true, inputmode="email") }}
+        {% for e in form.email.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="field">
+        {{ form.password.label }}
+        <div class="pw">
+          {{ form.password(class="input", autocomplete="current-password") }}
+          <button type="button" class="btn btn-ghost btn-sm" data-pw-toggle="password" aria-pressed="false">Show</button>
+        </div>
+      </div>
+      <button class="btn btn-block" type="submit">Sign in</button>
+    </form>
+    <p class="small muted" style="margin:18px 0 0">New to CampusDesk? <a href="{{ url_for('main.register_page') }}">Create a student account</a></p>
+  </div>
+</div>
+{% endblock %}

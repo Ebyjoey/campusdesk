@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pill, empty_state %}
+{% block title %}Dashboard - CampusDesk{% endblock %}
+{% set first = current_user.name.split()[0] %}
+{% set order = [('Open', 'open'), ('Assigned', 'assigned'), ('In Progress', 'progress'), ('Resolved', 'resolved'), ('Closed', 'closed')] %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Hello, {{ first }}.</h1>
+    <p>{% if current_user.role == 'student' %}Here is where your complaints stand.
+       {% elif current_user.role == 'staff' %}Here is what has been assigned to you.
+       {% else %}Here is everything on campus right now.{% endif %}</p>
+  </div>
+  {% if current_user.role == 'student' %}<a class="btn" href="{{ url_for('main.complaint_new') }}">Raise a complaint</a>{% endif %}
+</div>
+
+{% if stats.total == 0 %}
+<div class="card">
+  {% call empty_state('No complaints yet', 'Once a complaint is raised, you will see how many are open, in progress and resolved here.') %}
+    {% if current_user.role == 'student' %}<a class="btn" href="{{ url_for('main.complaint_new') }}">Raise your first complaint</a>{% endif %}
+  {% endcall %}
+</div>
+{% else %}
+<section class="card" aria-labelledby="pipeline-h">
+  <h2 id="pipeline-h">{{ stats.total }} {{ 'complaint' if stats.total == 1 else 'complaints' }} by stage</h2>
+  <div class="pipeline" role="img" aria-label="Complaints by stage">
+    {% for name, key in order %}
+      {% set n = stats.by_status[name] %}
+      <div class="seg-bar {{ 'empty' if n == 0 }}" style="--n: {{ n }}; --c: var(--s-{{ key }}); --i: {{ loop.index0 }}" title="{{ name }}: {{ n }}"></div>
+    {% endfor %}
+  </div>
+  <div class="legend-row">
+    {% for name, key in order %}
+    <div style="--c: var(--s-{{ key }})"><b>{{ stats.by_status[name] }}</b><i></i>{{ name }}</div>
+    {% endfor %}
+  </div>
+</section>
+
+<div class="grid-2" style="margin-top:20px">
+  <section class="card" aria-labelledby="cat-h">
+    <h2 id="cat-h">Where complaints come from</h2>
+    {% set most = stats.by_category.values() | max %}
+    <ul class="bars">
+      {% for name, n in stats.by_category.items() | sort(attribute='1', reverse=true) %}
+      <li><span>{{ name }}</span><span class="bar"><span style="--w: {{ (n / most * 100) | round(1) }}%"></span></span><b>{{ n }}</b></li>
+      {% endfor %}
+    </ul>
+  </section>
+  <section class="card" aria-labelledby="avg-h">
+    <h2 id="avg-h">Time to resolve</h2>
+    {% if stats.avg_resolution_hours is none %}
+      <p class="muted" style="margin:0">Nothing has been resolved yet. The average appears after the first fix.</p>
+    {% else %}
+      {% set h = stats.avg_resolution_hours %}
+      <div class="big-fact">{% if h >= 48 %}{{ (h / 24) | round(1) }} days{% elif h >= 1 %}{{ h | round(1) }} hours{% elif h * 60 >= 1 %}{{ (h * 60) | round | int }} minutes{% else %}Under a minute{% endif %}</div>
+      <p class="muted small" style="margin:10px 0 0">Average from raised to marked resolved.</p>
+    {% endif %}
+  </section>
+</div>
+
+<section class="card card-flush" style="margin-top:20px" aria-labelledby="recent-h">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 22px 6px">
+    <h2 id="recent-h" style="margin:0">Latest</h2>
+    <a class="small" href="{{ url_for('main.complaints_page') }}">See all complaints</a>
+  </div>
+  <div class="rows">
+    {% for c in recent %}
+    <a class="row" href="{{ url_for('main.complaint_detail', complaint_id=c.id) }}">
+      <span class="no">{{ c.ticket_no }}</span>
+      <span><span class="ttl" style="display:block">{{ c.title }}</span><span class="sub">{{ c.category.name }}, {{ c.location }}</span></span>
+      <span class="status-cell">{{ pill(c.status) }}</span>
+      <span class="who-cell sub">{{ ('With ' ~ c.assignee.name) if c.assignee else 'Waiting for assignment' }}</span>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}

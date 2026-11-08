@@ -1,0 +1,31 @@
+{% extends "public.html" %}
+{% block title %}Create account - CampusDesk{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div>
+    <h1>Report it once. Follow it to done.</h1>
+    <p class="lede">A student account lets you raise complaints and track every step.</p>
+  </div>
+  <div class="card auth-card">
+    <h2>Create a student account</h2>
+    <form method="post" novalidate data-loading>
+      {{ form.hidden_tag() }}
+      <div class="field">{{ form.name.label }}{{ form.name(class="input", autocomplete="name", autofocus=true) }}
+        {% for e in form.name.errors %}<div class="field-error">{{ e }}</div>{% endfor %}</div>
+      <div class="field">{{ form.email.label }}{{ form.email(class="input", autocomplete="username", inputmode="email") }}
+        {% for e in form.email.errors %}<div class="field-error">{{ e }}</div>{% endfor %}</div>
+      <div class="field">
+        {{ form.password.label }}
+        <div class="pw">
+          {{ form.password(class="input", autocomplete="new-password") }}
+          <button type="button" class="btn btn-ghost btn-sm" data-pw-toggle="password" aria-pressed="false">Show</button>
+        </div>
+        <div class="hint"><span>At least 8 characters.</span></div>
+        {% for e in form.password.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
+      </div>
+      <button class="btn btn-block" type="submit">Create account</button>
+    </form>
+    <p class="small muted" style="margin:18px 0 0">Already registered? <a href="{{ url_for('main.login_page') }}">Sign in</a></p>
+  </div>
+</div>
+{% endblock %}

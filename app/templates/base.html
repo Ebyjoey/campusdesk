@@ -1,0 +1,36 @@
+{% extends "base_root.html" %}
+{% from "_macros.html" import logo, avatar %}
+{% set ep = request.endpoint %}
+{% block body %}
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="{{ url_for('main.dashboard') }}" aria-label="CampusDesk home">{{ logo() }}<span>CampusDesk</span></a>
+    <nav class="nav" aria-label="Main">
+      <a href="{{ url_for('main.dashboard') }}" {% if ep == 'main.dashboard' %}aria-current="page"{% endif %}>Dashboard</a>
+      <a href="{{ url_for('main.complaints_page') }}" {% if ep in ('main.complaints_page', 'main.complaint_detail') %}aria-current="page"{% endif %}>Complaints</a>
+      {% if current_user.role == 'student' %}
+      <a href="{{ url_for('main.complaint_new') }}" {% if ep == 'main.complaint_new' %}aria-current="page"{% endif %}>Raise a complaint</a>
+      {% endif %}
+      {% if current_user.role == 'admin' %}
+      <a href="{{ url_for('main.admin_categories') }}" {% if ep == 'main.admin_categories' %}aria-current="page"{% endif %}>Categories</a>
+      {% endif %}
+    </nav>
+    <div class="user">
+      <div class="user-meta"><strong>{{ current_user.name }}</strong><span>{{ current_user.role }}</span></div>
+      {{ avatar(current_user) }}
+      <form method="post" action="{{ url_for('main.logout_page') }}" style="margin:0">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-ghost btn-sm">Sign out</button>
+      </form>
+    </div>
+  </div>
+</header>
+<main class="page">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="flash {{ category }}" role="status">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
+{% endblock %}

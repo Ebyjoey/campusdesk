@@ -1,0 +1,17 @@
+{% extends "base_root.html" %}
+{% from "_macros.html" import logo %}
+{% block body %}
+<header class="public-top">
+  <a class="brand" href="{{ url_for('main.index') }}" aria-label="CampusDesk home">{{ logo() }}<span>CampusDesk</span></a>
+  <div class="links">
+    <a class="btn btn-ghost btn-sm" href="{{ url_for('main.login_page') }}">Sign in</a>
+    <a class="btn btn-ink btn-sm" href="{{ url_for('main.register_page') }}">Create account</a>
+  </div>
+</header>
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}<div style="max-width:1120px;margin:0 auto;padding:0 24px">
+    {% for category, message in messages %}<div class="flash {{ category }}" role="status">{{ message }}</div>{% endfor %}
+  </div>{% endif %}
+{% endwith %}
+{% block content %}{% endblock %}
+{% endblock %}

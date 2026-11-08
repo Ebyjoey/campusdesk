@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pill, track, avatar, check %}
+{% block title %}{{ c.ticket_no }} - CampusDesk{% endblock %}
+{% set is_admin = current_user.role == 'admin' %}
+{% set is_assignee = c.assigned_to == current_user.id %}
+{% set is_owner = c.created_by == current_user.id %}
+{% block content %}
+<p class="small" style="margin:-8px 0 16px"><a href="{{ url_for('main.complaints_page') }}">Back to complaints</a></p>
+
+<div data-ticket-api="/api/complaints/{{ c.id }}">
+  <div class="ticket">
+    <div class="ticket-main">
+      <h1 style="font-size:clamp(24px,3.4vw,34px)">{{ c.title }}</h1>
+      <div class="ticket-meta">
+        <span><b>Category</b> {{ c.category.name }}</span>
+        <span><b>Location</b> {{ c.location }}</span>
+        <span><b>Priority</b> <span class="prio" data-p="{{ c.priority }}">{{ c.priority }}</span></span>
+        <span><b>Raised by</b> {{ c.creator.name }}</span>
+      </div>
+      {{ track(c.status, 'ticketTrack') }}
+    </div>
+    <div class="ticket-stub">
+      <div class="ticket-no">{{ c.ticket_no }}</div>
+      {{ pill(c.status) }}
+      <span class="muted small">Raised {{ c.created_at.strftime('%d %b %Y, %H:%M') }}</span>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-top:20px">
+    <div class="stack">
+      <section class="card">
+        <h2>Description</h2>
+        <p style="margin:0;white-space:pre-line;overflow-wrap:anywhere">{{ c.description }}</p>
+      </section>
+
+      <section class="card" aria-labelledby="conv-h">
+        <h2 id="conv-h">Conversation</h2>
+        {% if c.comments %}
+        <ul class="chat">
+          {% for m in c.comments %}
+          <li>{{ avatar(m.user) }}
+            <div class="bubble"><span class="who">{{ m.user.name }}</span><span class="when">{{ m.user.role }}, {{ m.created_at.strftime('%d %b, %H:%M') }}</span>
+              <p>{{ m.body }}</p></div></li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="muted">No comments yet. Add one to give staff more detail.</p>
+        {% endif %}
+        <form id="commentForm" class="compose">
+          <label class="sr-only" for="commentBody">Comment</label>
+          <input id="commentBody" class="input" maxlength="1000" placeholder="Write a comment" autocomplete="off">
+          <button class="btn" type="submit">Post comment</button>
+        </form>
+      </section>
+    </div>
+
+    <aside class="stack">
+      <section class="card">
+        <h2>Next step</h2>
+        <dl class="facts" style="margin-bottom:16px">
+          <dt>With</dt><dd>{{ c.assignee.name if c.assignee else 'Nobody yet' }}</dd>
+        </dl>
+        <div class="actions">
+          {% if is_admin and c.status in ('Open', 'Assigned') %}
+            {% if staff %}
+            <label class="sr-only" for="staffSelect">Staff member</label>
+            <select id="staffSelect" class="input">
+              {% for s in staff %}<option value="{{ s.id }}" {{ 'selected' if c.assigned_to == s.id }}>{{ s.name }}</option>{% endfor %}
+            </select>
+            <button id="assignBtn" class="btn btn-secondary" type="button">{{ 'Reassign' if c.assignee else 'Assign' }}</button>
+            {% else %}<p class="muted small" style="margin:0">No staff accounts exist yet.</p>{% endif %}
+          {% endif %}
+          {% if c.status == 'Assigned' and (is_admin or is_assignee) %}
+            <button class="btn" type="button" data-status-action="In Progress" data-done="Work started">Start work</button>{% endif %}
+          {% if c.status == 'In Progress' and (is_admin or is_assignee) %}
+            <button class="btn" type="button" data-status-action="Resolved" data-done="Marked as fixed">Mark as fixed</button>{% endif %}
+          {% if c.status == 'Resolved' and (is_admin or is_owner) %}
+            <button class="btn" type="button" data-status-action="Closed" data-done="Complaint closed">Confirm it is fixed</button>
+            <button class="btn btn-danger" type="button" data-status-action="In Progress" data-done="Complaint reopened">Reopen</button>{% endif %}
+          {% if c.status == 'Open' and not is_admin %}<p class="muted small" style="margin:0">Waiting for an admin to assign this.</p>{% endif %}
+          {% if c.status == 'Closed' %}<p class="muted small" style="margin:0">This complaint is closed.</p>{% endif %}
+        </div>
+        <div id="actionError" class="action-error" role="alert"></div>
+      </section>
+
+      <section class="card">
+        <h2>History</h2>
+        <ol class="timeline">
+          {% for h in c.history | reverse %}
+          <li><strong>{{ h.new_status }}</strong>{% if h.old_status %} from {{ h.old_status }}{% endif %}
+            <span class="when">{{ h.user.name }}, {{ h.changed_at.strftime('%d %b, %H:%M') }}</span></li>
+          {% endfor %}
+        </ol>
+      </section>
+    </aside>
+  </div>
+</div>
+{% endblock %}

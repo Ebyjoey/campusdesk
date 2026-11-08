@@ -1,0 +1,42 @@
+{% extends "public.html" %}
+{% from "_macros.html" import track %}
+{% block title %}CampusDesk: campus complaints with a visible path to fixed{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>Every complaint gets a ticket and a path to fixed.</h1>
+  <p class="lede">Hostel, mess, lab or Wi-Fi: raise it once, see who has it, and confirm when it is actually solved.</p>
+  <div class="cta">
+    <a class="btn" href="{{ url_for('main.register_page') }}">Raise a complaint</a>
+    <a class="btn btn-secondary" href="{{ url_for('main.login_page') }}">Sign in</a>
+  </div>
+</section>
+
+<section class="demo" aria-label="Example of a complaint moving through the five stages">
+  <div class="ticket">
+    <div class="ticket-main">
+      <div class="demo-title">Wi-Fi drops every evening on library floor 2</div>
+      <div class="ticket-meta"><span><b>Category</b> Wi-Fi / Network</span><span><b>Priority</b> High</span></div>
+      <ol class="track" id="demoTrack" aria-live="polite">
+        {% for name, who in [('Open','You raise it'),('Assigned','Admin assigns'),('In Progress','Staff work on it'),('Resolved','Staff mark it fixed'),('Closed','You confirm')] %}
+        <li><span class="node"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3.2L13 4.8"/></svg></span>
+          <span><span class="t-name">{{ name }}</span><span class="t-who">{{ who }}</span></span></li>
+        {% endfor %}
+      </ol>
+      <p class="demo-caption" id="demoCaption">You raise the complaint and get a ticket number straight away.</p>
+    </div>
+    <div class="ticket-stub">
+      <div class="ticket-no">CD-2026-00042</div>
+      <span class="pill" id="demoPill" data-status="Open">Open</span>
+      <span class="muted small">An example ticket</span>
+    </div>
+  </div>
+</section>
+
+<section class="roles">
+  <div><h3>Students</h3><p>Raise a complaint in under a minute, follow it, comment on it, and close it only when you are satisfied.</p></div>
+  <div><h3>Staff</h3><p>See only the complaints assigned to you, start work, and mark them fixed with a comment for the student.</p></div>
+  <div><h3>Admins</h3><p>See every open complaint, assign the right person, manage categories, and watch how fast things get resolved.</p></div>
+</section>
+
+<footer class="foot"><span>CampusDesk, a cloud and DevOps project.</span><span>Served by pod {{ hostname }}</span></footer>
+{% endblock %}

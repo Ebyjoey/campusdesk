@@ -1,0 +1,59 @@
+# __IMAGE__ is replaced by the Jenkins pipeline (sed) before kubectl apply.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: campusdesk-web
+  namespace: campusdesk
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }
+  selector:
+    matchLabels: { app: campusdesk-web }
+  template:
+    metadata:
+      labels: { app: campusdesk-web }
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: /metrics
+    spec:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels: { app: campusdesk-web }
+      initContainers:
+        - name: migrate
+          image: __IMAGE__
+          command: ["flask", "db", "upgrade"]
+          envFrom:
+            - configMapRef: { name: campusdesk-config }
+            - secretRef: { name: campusdesk-secret }
+      containers:
+        - name: web
+          image: __IMAGE__
+          ports: [{ containerPort: 8000 }]
+          envFrom:
+            - configMapRef: { name: campusdesk-config }
+            - secretRef: { name: campusdesk-secret }
+          readinessProbe: { httpGet: { path: /readyz, port: 8000 }, initialDelaySeconds: 10, periodSeconds: 10 }
+          livenessProbe: { httpGet: { path: /healthz, port: 8000 }, initialDelaySeconds: 20, periodSeconds: 20 }
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { cpu: 500m, memory: 384Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: campusdesk-svc
+  namespace: campusdesk
+spec:
+  type: NodePort
+  selector: { app: campusdesk-web }
+  ports:
+    - port: 80
+      targetPort: 8000
+      nodePort: 30080

@@ -1,0 +1,49 @@
+{% macro logo() -%}
+<svg viewBox="0 0 32 32" aria-hidden="true">
+  <path d="M5 6h22a2 2 0 0 1 2 2v4.2a3.8 3.8 0 0 0 0 7.6V24a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4.2a3.8 3.8 0 0 0 0-7.6V8a2 2 0 0 1 2-2z" fill="#2340e8"/>
+  <path d="M11 12.5h10M11 16h10M11 19.5h6" stroke="#ffd43b" stroke-width="2.2" stroke-linecap="round"/>
+</svg>
+{%- endmacro %}
+
+{% macro check() -%}
+<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.8"/></svg>
+{%- endmacro %}
+
+{% macro initials(name) -%}{{ (name.split() | map('first') | join)[:2] | upper }}{%- endmacro %}
+
+{% macro avatar(user) -%}
+<span class="avatar" data-role="{{ user.role }}" aria-hidden="true">{{ initials(user.name) }}</span>
+{%- endmacro %}
+
+{% macro pill(status) -%}
+<span class="pill" data-status="{{ status }}">{{ status }}</span>
+{%- endmacro %}
+
+{# Status track. current = status name of the complaint. #}
+{% macro track(current, id=None) -%}
+{% set steps = [('Open', 'You raise it'), ('Assigned', 'Admin assigns'), ('In Progress', 'Staff work on it'), ('Resolved', 'Staff mark it fixed'), ('Closed', 'You confirm')] %}
+{% set names = steps | map(attribute=0) | list %}
+{% set cur = names.index(current) %}
+<ol class="track" {% if id %}id="{{ id }}"{% endif %} style="--pct: {{ (cur / 4 * 100) | round(1) }}%" aria-label="Progress: {{ current }}">
+  {% for name, who in steps %}
+  <li class="{{ 'done' if (loop.index0 < cur or (current == 'Closed' and loop.index0 == cur)) else ('current' if loop.index0 == cur else '') }}"
+      {% if loop.index0 == cur %}aria-current="step"{% endif %}>
+    <span class="node">{{ check() }}</span>
+    <span><span class="t-name">{{ name }}</span><span class="t-who">{{ who }}</span></span>
+  </li>
+  {% endfor %}
+</ol>
+{%- endmacro %}
+
+{% macro empty_state(title, text) -%}
+<div class="empty">
+  <svg viewBox="0 0 160 100" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+    <path d="M14 18h132a4 4 0 0 1 4 4v14a10 10 0 0 0 0 20v14a4 4 0 0 1-4 4H14a4 4 0 0 1-4-4V56a10 10 0 0 0 0-20V22a4 4 0 0 1 4-4z"/>
+    <path d="M104 18v64" stroke-dasharray="5 7"/>
+    <path d="M30 40h56M30 54h38" opacity=".5"/>
+  </svg>
+  <h3>{{ title }}</h3>
+  <p>{{ text }}</p>
+  {{ caller() if caller }}
+</div>
+{%- endmacro %}

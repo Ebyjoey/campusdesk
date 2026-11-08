@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pill, empty_state %}
+{% block title %}Complaints - CampusDesk{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Complaints</h1>
+    <p>{% if current_user.role == 'student' %}Everything you have raised.
+       {% elif current_user.role == 'staff' %}Complaints assigned to you.
+       {% else %}Every complaint on campus.{% endif %}</p>
+  </div>
+  {% if current_user.role == 'student' %}<a class="btn" href="{{ url_for('main.complaint_new') }}">Raise a complaint</a>{% endif %}
+</div>
+
+<form class="filters" method="get" aria-label="Filter complaints">
+  <select name="status" class="input" data-autosubmit aria-label="Status">
+    <option value="">Any status</option>
+    {% for s in statuses %}<option {{ 'selected' if request.args.get('status') == s }}>{{ s }}</option>{% endfor %}
+  </select>
+  <select name="category" class="input" data-autosubmit aria-label="Category">
+    <option value="">Any category</option>
+    {% for c in categories %}<option value="{{ c.id }}" {{ 'selected' if request.args.get('category', type=int) == c.id }}>{{ c.name }}</option>{% endfor %}
+  </select>
+  <select name="priority" class="input" data-autosubmit aria-label="Priority">
+    <option value="">Any priority</option>
+    {% for p in priorities %}<option {{ 'selected' if request.args.get('priority') == p }}>{{ p }}</option>{% endfor %}
+  </select>
+  {% if request.args.get('status') or request.args.get('category') or request.args.get('priority') %}
+    <a class="btn btn-ghost btn-sm" href="{{ url_for('main.complaints_page') }}">Clear filters</a>
+  {% endif %}
+  <noscript><button class="btn btn-secondary btn-sm">Apply</button></noscript>
+</form>
+
+<div class="card card-flush">
+  {% if complaints %}
+  <div class="row row-head" aria-hidden="true"><span>Ticket</span><span>Complaint</span><span>Stage</span><span>With</span></div>
+  <div class="rows">
+    {% for c in complaints %}
+    <a class="row" href="{{ url_for('main.complaint_detail', complaint_id=c.id) }}">
+      <span class="no">{{ c.ticket_no }}</span>
+      <span style="min-width:0">
+        <span class="ttl" style="display:block">{{ c.title }}</span>
+        <span class="sub">{{ c.category.name }}, {{ c.location }}, <span class="prio" data-p="{{ c.priority }}">{{ c.priority }} priority</span></span>
+      </span>
+      <span class="status-cell">{{ pill(c.status) }}</span>
+      <span class="who-cell sub">{{ c.assignee.name if c.assignee else 'Waiting for assignment' }}</span>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+    {% call empty_state('No complaints match', 'Try clearing a filter, or raise a new complaint.') %}
+      {% if current_user.role == 'student' %}<a class="btn" href="{{ url_for('main.complaint_new') }}">Raise a complaint</a>{% endif %}
+    {% endcall %}
+  {% endif %}
+</div>
+{% endblock %}
